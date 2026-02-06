@@ -14,6 +14,12 @@ class MainScreen extends StatelessWidget {
             tooltip: 'Salir',
             onPressed: () async {
               await SupabaseService.signOut();
+              if (!context.mounted) return;
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/',
+                (route) => false,
+              );
             },
             icon: const Icon(Icons.logout),
           ),
