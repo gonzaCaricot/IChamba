@@ -2,6 +2,8 @@
 import 'register_page.dart';
 import 'supabase_config.dart';
 import 'services/supabase_service.dart';
+import 'login_page.dart';
+import 'main_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:supabase/supabase.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Usage: set SUPABASE_URL and SUPABASE_KEY environment vars then run:
 // dart run tools/migrate_to_supabase.dart C:\path\to\ichamba.db
@@ -39,11 +39,11 @@ Future<void> main(List<String> args) async {
       'phone': row['phone'],
     };
 
-    final res = await client.from('users').insert(mapped).execute();
-    if (res.error != null) {
-      print('Failed insert id ${row['id']}: ${res.error!.message}');
-    } else {
+    try {
+      await client.from('users').insert(mapped);
       print('Inserted id ${row['id']}');
+    } catch (e) {
+      print('Failed insert id ${row['id']}: $e');
     }
   }
 
