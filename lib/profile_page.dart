@@ -12,7 +12,11 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _neighborhoodController = TextEditingController();
   bool _loading = false;
 
   @override
@@ -20,16 +24,23 @@ class _ProfilePageState extends State<ProfilePage> {
     super.initState();
     final user = SupabaseService.currentUser();
     if (user != null) {
-      _nameController.text = user.userMetadata?['name'] ?? '';
+      _nameController.text = user.userMetadata?['first_name'] ?? '';
+      _lastNameController.text = user.userMetadata?['last_name'] ?? '';
+      _emailController.text = user.email ?? '';
       _phoneController.text = user.userMetadata?['phone'] ?? '';
-      // prefill email into credentials store read (optional)
+      _cityController.text = user.userMetadata?['city'] ?? '';
+      _neighborhoodController.text = user.userMetadata?['neighborhood'] ?? '';
     }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
     _phoneController.dispose();
+    _cityController.dispose();
+    _neighborhoodController.dispose();
     super.dispose();
   }
 
@@ -38,11 +49,15 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() => _loading = true);
     try {
       final data = {
-        'name': _nameController.text.trim(),
+        'first_name': _nameController.text.trim(),
+        'last_name': _lastNameController.text.trim(),
+        'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
+        'city': _cityController.text.trim(),
+        'neighborhood': _neighborhoodController.text.trim(),
       };
-      // For now insert/update into `users` table via createUser (simple)
-      await SupabaseService.createUser(data);
+      // Use upsert to insert or update user record
+      await SupabaseService.upsertUser(data);
       // Optionally save last email placeholder
       final current = SupabaseService.currentUser();
       if (current?.email != null) {
@@ -80,8 +95,30 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               const SizedBox(height: 12),
               TextFormField(
+                controller: _lastNameController,
+                decoration: const InputDecoration(labelText: 'Apellido'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: 'Mail'),
+                validator: (v) =>
+                    v != null && v.contains('@') ? null : 'Email inválido',
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
                 controller: _phoneController,
-                decoration: const InputDecoration(labelText: 'Teléfono'),
+                decoration: const InputDecoration(labelText: 'Celular'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _cityController,
+                decoration: const InputDecoration(labelText: 'Ciudad'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _neighborhoodController,
+                decoration: const InputDecoration(labelText: 'Barrio'),
               ),
               const SizedBox(height: 20),
               ElevatedButton(

@@ -58,4 +58,10 @@ class SupabaseService {
   static Future<void> createUser(Map<String, dynamic> user) async {
     await client.from('users').insert(user).select().single();
   }
+
+  /// Insert or update a user row using upsert. Expects a map with identifying
+  /// fields (e.g. 'id' or unique constraint) to perform update when present.
+  static Future<void> upsertUser(Map<String, dynamic> user) async {
+    await client.from('users').upsert(user).select().maybeSingle();
+  }
 }
