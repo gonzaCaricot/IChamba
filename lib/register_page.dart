@@ -14,6 +14,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   bool _loading = false;
   String? _error;
   String _lastAction = '';
@@ -29,9 +31,14 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
+      final name = _nameController.text.trim();
+      final lastName = _lastNameController.text.trim();
 
       // 1. Crear usuario
-      final response = await SupabaseService.signUp(email, password);
+      final response = await SupabaseService.signUp(
+        email,
+        password,
+      );
       // Debugging info
       debugPrint(
         'signUp response: user=${response.user}, session=${response.session}',
@@ -106,23 +113,40 @@ class _RegisterPageState extends State<RegisterPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: 'Nombre'),
+                validator: (v) =>
+                    v != null && v.trim().isNotEmpty ? null : 'Ingrese nombre',
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _lastNameController,
+                decoration: const InputDecoration(labelText: 'Apellido'),
+                validator: (v) =>
+                    v != null && v.trim().isNotEmpty ? null : 'Ingrese apellido',
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(labelText: 'Email'),
-                validator: (value) => value != null && value.contains('@')
-                    ? null
-                    : 'Email inválido',
+                validator: (v) =>
+                    v != null && v.contains('@') ? null : 'Email inválido',
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _passwordController,
                 decoration: const InputDecoration(labelText: 'Contraseña'),
                 obscureText: true,
-                validator: (value) => value != null && value.length >= 6
-                    ? null
-                    : 'Mínimo 6 caracteres',
+                validator: (v) =>
+                    v != null && v.length >= 6 ? null : 'Mínimo 6 caracteres',
               ),
-              const SizedBox(height: 8),
-              if (_lastAction.isNotEmpty)
-                Text(_lastAction, style: const TextStyle(color: Colors.blue)),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  const Text('Rol: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text('usuario (por defecto)', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
               const SizedBox(height: 20),
               if (_error != null)
                 Text(_error!, style: const TextStyle(color: Colors.red)),
@@ -157,6 +181,8 @@ class _RegisterPageState extends State<RegisterPage> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _nameController.dispose();
+    _lastNameController.dispose();
     super.dispose();
   }
 }

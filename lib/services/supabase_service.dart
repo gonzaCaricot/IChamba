@@ -69,9 +69,9 @@ class SupabaseService {
     final current = client.auth.currentUser;
     final payload = Map<String, dynamic>.from(user);
     // If caller didn't provide an id, set it to the authenticated user's id
-    if ((payload['id'] == null || payload['id'].toString().isEmpty) &&
+    if ((payload['auth_id'] == null || payload['id'].toString().isEmpty) &&
         current != null) {
-      payload['id'] = current.id;
+      payload['auth_id'] = current.id;
     }
     await client.from('users').upsert(payload).select().maybeSingle();
   }

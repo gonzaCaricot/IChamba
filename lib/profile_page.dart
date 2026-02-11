@@ -19,10 +19,12 @@ class _ProfilePageState extends State<ProfilePage> {
   final _neighborhoodController = TextEditingController();
   bool _loading = false;
 
+  String _role = 'usuario';
+  String? _roleRequest;
+
   @override
   void initState() {
     super.initState();
-    // Load profile from `users` table if present; fallback to auth user metadata
     SupabaseService.fetchUserProfile().then((row) {
       if (!mounted) return;
       if (row != null) {
@@ -32,6 +34,10 @@ class _ProfilePageState extends State<ProfilePage> {
         _phoneController.text = row['phone'] ?? '';
         _cityController.text = row['city'] ?? '';
         _neighborhoodController.text = row['neighborhood'] ?? '';
+        setState(() {
+          _role = row['role'] ?? 'usuario';
+          _roleRequest = row['role_request'];
+        });
       } else {
         final user = SupabaseService.currentUser();
         if (user != null) {
@@ -42,6 +48,10 @@ class _ProfilePageState extends State<ProfilePage> {
           _cityController.text = user.userMetadata?['city'] ?? '';
           _neighborhoodController.text =
               user.userMetadata?['neighborhood'] ?? '';
+          setState(() {
+            _role = user.userMetadata?['role'] ?? 'usuario';
+            _roleRequest = user.userMetadata?['role_request'];
+          });
         }
       }
     });
@@ -71,10 +81,9 @@ class _ProfilePageState extends State<ProfilePage> {
         'city': _cityController.text.trim(),
         'neighborhood': _neighborhoodController.text.trim(),
       };
-      // Ensure the upsert includes the auth id so RLS allows the operation
-      if (current?.id != null) data['id'] = current!.id;
+      if (current?.id != null) data['auth_id'] = current!.id;
+
       await SupabaseService.upsertUser(data);
-      // Optionally save last email placeholder
       if (current?.email != null) {
         await CredentialsStore.saveLastEmail(current!.email!);
       }
@@ -92,8 +101,41 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _requestRole(String requestedRole) async {
+    setState(() => _loading = true);
+    try {
+      final current = SupabaseService.currentUser();
+      final data = <String, dynamic>{
+        'role_request': requestedRole,
+      };
+      if (current?.id != null) data['auth_id'] = current!.id;
+      await SupabaseService.upsertUser(data);
+      setState(() {
+        _roleRequest = requestedRole;
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Solicitud enviada para ser "$requestedRole"')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final roleDisplay = {
+      'usuario': 'Usuario',
+      'autenticado': 'Autenticado',
+      'ofrecedor': 'Ofrecedor',
+      'admin': 'Administrador',
+    }[_role] ?? _role;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Perfil')),
       body: Padding(
@@ -112,6 +154,8 @@ class _ProfilePageState extends State<ProfilePage> {
               TextFormField(
                 controller: _lastNameController,
                 decoration: const InputDecoration(labelText: 'Apellido'),
+                validator: (v) =>
+                    v != null && v.trim().isNotEmpty ? null : 'Ingrese apellido',
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -124,22 +168,69 @@ class _ProfilePageState extends State<ProfilePage> {
               TextFormField(
                 controller: _phoneController,
                 decoration: const InputDecoration(labelText: 'Celular'),
+                validator: (v) =>
+                    v != null && v.trim().isNotEmpty ? null : 'Ingrese celular',
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _cityController,
                 decoration: const InputDecoration(labelText: 'Ciudad'),
+                validator: (v) =>
+                    v != null && v.trim().isNotEmpty ? null : 'Ingrese ciudad',
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _neighborhoodController,
                 decoration: const InputDecoration(labelText: 'Barrio'),
+                validator: (v) =>
+                    v != null && v.trim().isNotEmpty ? null : 'Ingrese barrio',
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  const Text('Rol: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(roleDisplay, style: const TextStyle(color: Colors.grey)),
+                ],
+              ),
+              if (_roleRequest != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    'Solicitud pendiente para ser "${_roleRequest!}"',
+                    style: const TextStyle(color: Colors.orange),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: (_loading || _role == 'autenticado' || _roleRequest == 'autenticado')
+                          ? null
+                          : () => _requestRole('autenticado'),
+                      child: const Text('Solicitar ser Autenticado'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: (_loading || _role == 'ofrecedor' || _roleRequest == 'ofrecedor')
+                          ? null
+                          : () => _requestRole('ofrecedor'),
+                      child: const Text('Solicitar ser Ofrecedor'),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _loading ? null : _save,
                 child: _loading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
                     : const Text('Guardar'),
               ),
             ],
