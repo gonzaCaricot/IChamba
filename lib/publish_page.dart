@@ -60,6 +60,7 @@ class _PublishPageState extends State<PublishPage> {
         filename: _imageName ?? 'post.jpg',
         description: _descController.text.trim(),
       );
+      print("LLEGA1");
       await _loadMyPosts();
       SelectedImageStore.instance.notifyPostsChanged();
       if (!mounted) return;
@@ -71,13 +72,16 @@ class _PublishPageState extends State<PublishPage> {
         _imageName = null;
         _descController.clear();
       });
+      print("LLEGA2");
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
+      print("LLEGA3");
       if (mounted) setState(() => _loading = false);
+      print("LLEGA4");
     }
   }
 
