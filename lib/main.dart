@@ -6,6 +6,7 @@ import 'register_page.dart';
 import 'profile_page.dart';
 import 'services/supabase_service.dart';
 import 'supabase_config.dart';
+import 'route_observer.dart'; // <--- added
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,7 @@ class IchambaApp extends StatelessWidget {
         useMaterial3: true,
       ),
       initialRoute: '/',
+      navigatorObservers: [routeObserver], // <--- added
       routes: {
         '/': (context) => const AuthGate(),
         '/login': (context) => const LoginPage(),
@@ -42,7 +44,12 @@ class AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
-      future: SupabaseService.waitForInitialAuth(),
+      future: SupabaseService.waitForInitialAuth()
+          .then<bool>((v) => v == true)
+          .catchError((e, _) {
+            debugPrint('waitForInitialAuth error: $e');
+            return false;
+          }),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Scaffold(
