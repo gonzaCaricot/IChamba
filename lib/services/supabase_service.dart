@@ -7,8 +7,7 @@ class SupabaseService {
   // Use the 'publicaciones' bucket created in Supabase Storage.
   // Change this value if you prefer a different bucket name.
   static const String _postsBucket = 'publicaciones';
-  // Avatars bucket for profile pictures
-  static const String _avatarsBucket = 'avatars';
+  // Avatars bucket removed: project does not store avatar_url in DB
 
   static Future<void> init({
     required String url,
@@ -186,49 +185,7 @@ class SupabaseService {
   /// Upload a profile image to storage and save the public URL to the `users` table
   /// The user's row is identified by `auth_id` equal to the authenticated user's id.
   /// Returns the public URL of the uploaded image.
-  static Future<String> uploadProfileImageAndSave({
-    required Uint8List bytes,
-    required String filename,
-  }) async {
-    final user = client.auth.currentUser;
-    if (user == null) {
-      throw Exception('Usuario no autenticado. Inicia sesión primero.');
-    }
-
-    final path =
-        'avatars/${user.id}_${DateTime.now().millisecondsSinceEpoch}_$filename';
-
-    try {
-      await client.storage.from(_avatarsBucket).uploadBinary(path, bytes);
-    } catch (e) {
-      final msg = e.toString();
-      if (msg.contains('Bucket') ||
-          msg.contains('not found') ||
-          msg.contains('404')) {
-        throw Exception(
-          "Supabase Storage bucket '$_avatarsBucket' not found (404). Crea el bucket 'avatars' en Supabase Storage o actualiza el nombre en SupabaseService.",
-        );
-      }
-      rethrow;
-    }
-
-    final url = client.storage.from(_avatarsBucket).getPublicUrl(path);
-
-    // Save URL into users table (match by auth_id)
-    try {
-      await client
-          .from('users')
-          .update({'avatar_url': url})
-          .eq('auth_id', user.id);
-    } catch (e) {
-      // Not fatal: still return the URL, but surface a warning via exception
-      throw Exception(
-        'Imagen subida pero no se pudo guardar la URL en users: $e',
-      );
-    }
-
-    return url;
-  }
+  // Avatar upload removed: this project does not persist avatar_url in DB.
 
   /// Fetch posts for a specific user. If [userId] is null, uses current user.
   static Future<List<Map<String, dynamic>>> fetchUserPosts([
@@ -423,26 +380,66 @@ class SupabaseService {
   }
 
   /// Fetch all users except the current one (for "new message" user picker).
+  /// 
+  /// IMPORTANT: Requires RLS policy on public.users that allows SELECT for all authenticated users:
+  /// ```sql
+  /// CREATE POLICY "Allow authenticated users to view all users"
+  /// ON public.users FOR SELECT TO authenticated USING (true);
+  /// ```
   static Future<List<Map<String, dynamic>>> fetchOtherUsers() async {
     final uid = client.auth.currentUser?.id;
-    debugPrint('[fetchOtherUsers] uid=$uid');
-    final resp = await client.from('users').select();
-    final all = List<Map<String, dynamic>>.from(resp);
-    debugPrint('[fetchOtherUsers] total users in table: ${all.length}');
-    for (final u in all) {
-      debugPrint(
-        '[fetchOtherUsers] user: auth_id=${u['auth_id']}, id=${u['id']}, email=${u['email']}',
-      );
+    debugPrint('[fetchOtherUsers] Current user auth_id: $uid');
+
+    try {
+      // Query public.users table - RLS must allow SELECT for authenticated users
+        final resp = await client
+          .from('users')
+          .select('id, auth_id, email, first_name')
+          .order('first_name', ascending: true);
+      
+      final all = List<Map<String, dynamic>>.from(resp);
+      debugPrint('[fetchOtherUsers] ✓ Loaded ${all.length} users from public.users');
+
+      if (all.isEmpty) {
+        debugPrint('[fetchOtherUsers] ⚠️ No users found. Possible causes:');
+        debugPrint('  1. Table public.users is empty');
+        debugPrint('  2. RLS policy blocks SELECT (most likely)');
+        debugPrint('  3. User not authenticated');
+        return [];
+      }
+
+      if (uid == null) {
+        debugPrint('[fetchOtherUsers] No current user, returning all ${all.length} users');
+        return all;
+      }
+
+      // Filter out current user by comparing auth_id
+      final filtered = all.where((u) {
+        final authId = u['auth_id']?.toString();
+        return authId != null && authId != uid;
+      }).toList();
+
+      debugPrint('[fetchOtherUsers] ✓ Filtered to ${filtered.length} other users');
+      return filtered;
+    } catch (e) {
+      debugPrint('[fetchOtherUsers] ❌ ERROR: $e');
+      debugPrint('[fetchOtherUsers] Check:');
+      debugPrint('  1. RLS policy allows SELECT for authenticated users');
+      debugPrint('  2. User is authenticated');
+      debugPrint('  3. Table public.users exists and has data');
+      rethrow;
     }
-    if (uid == null) return all;
-    final filtered = all.where((u) {
-      final authId = u['auth_id']?.toString();
-      final id = u['id']?.toString();
-      return authId != uid && id != uid;
-    }).toList();
-    debugPrint(
-      '[fetchOtherUsers] filtered (excluding self): ${filtered.length}',
-    );
-    return filtered;
+  }
+
+  /// Change the current user's password.
+  /// Uses Supabase Auth API to update the authenticated user's password.
+  static Future<void> changePassword(String newPassword) async {
+    final user = client.auth.currentUser;
+    if (user == null) throw Exception('Usuario no autenticado');
+    try {
+      await client.auth.updateUser(UserAttributes(password: newPassword));
+    } catch (e) {
+      rethrow;
+    }
   }
 }

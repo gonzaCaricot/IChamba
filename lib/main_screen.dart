@@ -7,7 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'profile_page.dart';
 import 'publish_page.dart';
 import 'messages_page.dart';
-
+import 'settings_page.dart';
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -27,26 +27,13 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     // Sidebar stays visible at all times; load public posts for feed.
     _loadPosts();
-    _loadAvatarUrl();
     // Listen for posts changes and refresh feed
     _postsListener = _onPostsChanged;
     SelectedImageStore.instance.postsVersion.addListener(_postsListener!);
     _loadAppVersion();
   }
 
-  Future<void> _loadAvatarUrl() async {
-    try {
-      final profile = await SupabaseService.fetchUserProfile();
-      final url = profile?['avatar_url'] as String?;
-      if (url != null && url.isNotEmpty) {
-        SelectedImageStore.instance.setAvatarUrl(url);
-      }
-    } catch (_) {
-      // ignore
-    }
-  }
-
-  // profile loader removed because top avatar was removed from UI
+  // profile loader removed because avatar columns are not used in DB
 
   Future<void> _loadAppVersion() async {
     try {
@@ -83,15 +70,11 @@ class _MainScreenState extends State<MainScreen> {
 
       if (file.bytes != null) {
         try {
-          final url = await SupabaseService.uploadProfileImageAndSave(
-            bytes: file.bytes!,
-            filename: file.name,
-          );
+          // Do not upload avatar: project DB has no avatar_url column.
           SelectedImageStore.instance.setImage(file.bytes, file.name);
-          SelectedImageStore.instance.setAvatarUrl(url);
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Imagen de perfil subida y guardada')),
+            const SnackBar(content: Text('Imagen seleccionada (no se guarda en el servidor)')),
           );
         } catch (e) {
           if (!mounted) return;
@@ -303,6 +286,8 @@ class _MainScreenState extends State<MainScreen> {
         return const PublishPage();
       case 4:
         return const MessagesPage();
+      case 5:
+        return const SettingsPage();
       case 1:
       default:
         return RefreshIndicator(
@@ -404,7 +389,15 @@ class _MainScreenState extends State<MainScreen> {
           });
         },
       },
-      {'icon': Icons.settings, 'tooltip': 'Ajustes', 'action': () {}},
+      {
+        'icon': Icons.settings,
+        'tooltip': 'Ajustes',
+        'action': () {
+          setState(() {
+            _selectedIndex = 5;
+          });
+        },
+      },
     ];
 
     // Render icon with label beneath and active highlight
@@ -438,24 +431,12 @@ class _MainScreenState extends State<MainScreen> {
                           backgroundImage: MemoryImage(bytes),
                         );
                       }
-                      return ValueListenableBuilder<String?>(
-                        valueListenable:
-                            SelectedImageStore.instance.avatarUrlNotifier,
-                        builder: (context, url, __) {
-                          if (url != null && url.isNotEmpty) {
-                            return CircleAvatar(
-                              radius: 16,
-                              backgroundImage: NetworkImage(url),
-                            );
-                          }
-                          return Icon(
-                            it['icon'] as IconData,
-                            size: 28,
-                            color: active
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).colorScheme.onSurface,
-                          );
-                        },
+                      return Icon(
+                        it['icon'] as IconData,
+                        size: 28,
+                        color: active
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurface,
                       );
                     },
                   )

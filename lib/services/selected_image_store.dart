@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 
 class SelectedImageStore {
   SelectedImageStore._private();
@@ -13,8 +14,7 @@ class SelectedImageStore {
   /// Optional filename for display/metadata
   final ValueNotifier<String?> filenameNotifier = ValueNotifier<String?>(null);
 
-  /// Optional public avatar URL stored in backend (Supabase)
-  final ValueNotifier<String?> avatarUrlNotifier = ValueNotifier<String?>(null);
+  // avatar_url support removed (DB does not have avatar column)
 
   /// Notifier to indicate posts list has changed (increment to notify listeners)
   final ValueNotifier<int> postsVersion = ValueNotifier<int>(0);
@@ -24,9 +24,7 @@ class SelectedImageStore {
     filenameNotifier.value = filename;
   }
 
-  void setAvatarUrl(String? url) {
-    avatarUrlNotifier.value = url;
-  }
+  // setAvatarUrl removed
 
   void clear() {
     imageNotifier.value = null;

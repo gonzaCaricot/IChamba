@@ -267,27 +267,8 @@ class _ProfilePageState extends State<ProfilePage> with RouteAware { // <--- cha
                   ),
                 ),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: (_loading || _role == 'autenticado' || _roleRequest == 'autenticado')
-                          ? null
-                          : () => _requestRole('autenticado'),
-                      child: const Text('Solicitar ser Autenticado'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: (_loading || _role == 'ofrecedor' || _roleRequest == 'ofrecedor')
-                          ? null
-                          : () => _requestRole('ofrecedor'),
-                      child: const Text('Solicitar ser Ofrecedor'),
-                    ),
-                  ),
-                ],
-              ),
+              // Role requests moved to Ajustes (sidebar). Use Settings to request roles.
+              const SizedBox(height: 8),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _loading ? null : _save,

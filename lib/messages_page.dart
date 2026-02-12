@@ -41,7 +41,6 @@ class _MessagesPageState extends State<MessagesPage> {
             userMap[pid]?['first_name'] ??
             userMap[pid]?['email'] ??
             pid.substring(0, 8);
-        c['partner_avatar'] = userMap[pid]?['avatar_url'];
       }
       if (!mounted) return;
       setState(() {
@@ -87,6 +86,7 @@ class _MessagesPageState extends State<MessagesPage> {
       builder: (ctx) => _UserPickerSheet(
         users: users!,
         onSelect: (user) {
+          debugPrint('[NewMessage] users loaded: $users');
           Navigator.pop(ctx);
           final partnerId = (user['auth_id'] ?? user['id']).toString();
           _openChat({
@@ -96,7 +96,6 @@ class _MessagesPageState extends State<MessagesPage> {
                 user['email'] ??
                 partnerId.substring(0, 8),
             'partner_email': user['email'] ?? '',
-            'partner_avatar': user['avatar_url'],
           });
         },
       ),
@@ -109,7 +108,6 @@ class _MessagesPageState extends State<MessagesPage> {
       return _ChatView(
         partnerId: _activePartner!['partner_id'] as String,
         partnerName: _activePartner!['partner_name'] as String? ?? '',
-        partnerAvatar: _activePartner!['partner_avatar'] as String?,
         onBack: _closeChat,
       );
     }
@@ -176,16 +174,14 @@ class _MessagesPageState extends State<MessagesPage> {
                   itemBuilder: (context, index) {
                     final c = _conversations[index];
                     final unread = (c['unread'] as int?) ?? 0;
-                    final avatar = c['partner_avatar'] as String?;
+                    final name = c['partner_name'] as String? ?? '';
+                    final initial = name.isNotEmpty ? name[0].toUpperCase() : '';
                     return ListTile(
                       leading: CircleAvatar(
                         radius: 24,
-                        backgroundImage: avatar != null && avatar.isNotEmpty
-                            ? NetworkImage(avatar)
-                            : null,
-                        child: avatar == null || avatar.isEmpty
-                            ? const Icon(Icons.person)
-                            : null,
+                        child: initial.isNotEmpty
+                            ? Text(initial)
+                            : const Icon(Icons.person),
                       ),
                       title: Text(
                         c['partner_name'] as String? ?? '',
@@ -314,7 +310,7 @@ class _UserPickerSheetState extends State<_UserPickerSheet> {
             ),
           ),
           Expanded(
-            child: filtered.isEmpty
+                child: filtered.isEmpty
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
@@ -329,20 +325,18 @@ class _UserPickerSheetState extends State<_UserPickerSheet> {
                       ),
                     ),
                   )
-                : ListView.builder(
+                    : ListView.builder(
                     controller: scrollController,
                     itemCount: filtered.length,
                     itemBuilder: (context, i) {
                       final u = filtered[i];
-                      final avatar = u['avatar_url'] as String?;
+                      final name = (u['first_name'] ?? u['email'] ?? '').toString();
+                      final initial = name.isNotEmpty ? name[0].toUpperCase() : '';
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundImage: avatar != null && avatar.isNotEmpty
-                              ? NetworkImage(avatar)
-                              : null,
-                          child: avatar == null || avatar.isEmpty
-                              ? const Icon(Icons.person)
-                              : null,
+                          child: initial.isNotEmpty
+                              ? Text(initial)
+                              : const Icon(Icons.person),
                         ),
                         title: Text(u['first_name'] ?? u['email'] ?? ''),
                         subtitle: Text(u['email'] ?? ''),
@@ -362,13 +356,11 @@ class _UserPickerSheetState extends State<_UserPickerSheet> {
 class _ChatView extends StatefulWidget {
   final String partnerId;
   final String partnerName;
-  final String? partnerAvatar;
   final VoidCallback onBack;
 
   const _ChatView({
     required this.partnerId,
     required this.partnerName,
-    this.partnerAvatar,
     required this.onBack,
   });
 
@@ -473,19 +465,12 @@ class _ChatViewState extends State<_ChatView> {
                 onPressed: widget.onBack,
                 tooltip: 'Volver',
               ),
-              CircleAvatar(
+                CircleAvatar(
                 radius: 18,
-                backgroundImage:
-                    widget.partnerAvatar != null &&
-                        widget.partnerAvatar!.isNotEmpty
-                    ? NetworkImage(widget.partnerAvatar!)
-                    : null,
-                child:
-                    widget.partnerAvatar == null ||
-                        widget.partnerAvatar!.isEmpty
-                    ? const Icon(Icons.person, size: 20)
-                    : null,
-              ),
+                child: widget.partnerName.isNotEmpty
+                  ? Text(widget.partnerName[0].toUpperCase())
+                  : const Icon(Icons.person, size: 20),
+                ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
