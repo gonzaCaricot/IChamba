@@ -61,7 +61,7 @@ class _PublishPageState extends State<PublishPage> {
         filename: _imageName ?? 'post.jpg',
         description: _descController.text.trim(),
       );
-      print("LLEGA1");
+      // debug: upload completed
       await _loadMyPosts();
       SelectedImageStore.instance.notifyPostsChanged();
       if (!mounted) return;
@@ -73,16 +73,14 @@ class _PublishPageState extends State<PublishPage> {
         _imageName = null;
         _descController.clear();
       });
-      print("LLEGA2");
+      // debug: posts reloaded
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
-      print("LLEGA3");
       if (mounted) setState(() => _loading = false);
-      print("LLEGA4");
     }
   }
 
@@ -160,6 +158,7 @@ class _PublishPageState extends State<PublishPage> {
                 bytes: newImageBytes,
                 filename: newImageName,
               );
+              if (!context.mounted) return;
               Navigator.pop(context, true);
             },
             child: const Text('Guardar'),
@@ -185,100 +184,102 @@ class _PublishPageState extends State<PublishPage> {
       body: DesktopResponsive(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ElevatedButton.icon(
-              onPressed: _pickImage,
-              icon: const Icon(Icons.photo_library),
-              label: const Text('Seleccionar imagen'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _descController,
-              decoration: const InputDecoration(labelText: 'Descripción'),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 12),
-            // Preview displayed below description as requested
-            Container(
-              height: 180,
-              width: double.infinity,
-              color: Colors.grey[200],
-              child: _imageData == null
-                  ? const Center(child: Text('No hay imagen seleccionada'))
-                  : Image.memory(_imageData!, fit: BoxFit.cover),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: _loading ? null : _publish,
-              child: _loading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Publicar'),
-            ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _pickImage,
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text('Seleccionar imagen'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _descController,
+                  decoration: const InputDecoration(labelText: 'Descripción'),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 12),
+                // Preview displayed below description as requested
+                Container(
+                  height: 180,
+                  width: double.infinity,
+                  color: Colors.grey[200],
+                  child: _imageData == null
+                      ? const Center(child: Text('No hay imagen seleccionada'))
+                      : Image.memory(_imageData!, fit: BoxFit.cover),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: _loading ? null : _publish,
+                  child: _loading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Publicar'),
+                ),
 
-            const Divider(height: 32),
-            const Text(
-              'Mis publicaciones',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            if (_loadingPosts) const Center(child: CircularProgressIndicator()),
-            if (!_loadingPosts && _myPosts.isEmpty)
-              const Text('No tienes publicaciones aún.'),
-            if (!_loadingPosts && _myPosts.isNotEmpty)
-              ..._myPosts.map((post) {
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  child: ListTile(
-                    leading: post['image_url'] != null
-                        ? Image.network(
-                            post['image_url'] as String,
-                            width: 56,
-                            height: 56,
-                            fit: BoxFit.cover,
-                          )
-                        : const SizedBox(width: 56, height: 56),
-                    title: Text(post['description'] ?? ''),
-                    subtitle: Text(post['created_at'] ?? ''),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () => _editPost(post),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Eliminar publicación'),
-                                content: const Text(
-                                  '¿Seguro que deseas eliminar esta publicación?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context, false),
-                                    child: const Text('Cancelar'),
+                const Divider(height: 32),
+                const Text(
+                  'Mis publicaciones',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                if (_loadingPosts) const Center(child: CircularProgressIndicator()),
+                if (!_loadingPosts && _myPosts.isEmpty)
+                  const Text('No tienes publicaciones aún.'),
+                if (!_loadingPosts && _myPosts.isNotEmpty)
+                  for (final post in _myPosts)
+                    Card(
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      child: ListTile(
+                        leading: post['image_url'] != null
+                            ? Image.network(
+                                post['image_url'] as String,
+                                width: 56,
+                                height: 56,
+                                fit: BoxFit.cover,
+                              )
+                            : const SizedBox(width: 56, height: 56),
+                        title: Text(post['description'] ?? ''),
+                        subtitle: Text(post['created_at'] ?? ''),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () => _editPost(post),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Eliminar publicación'),
+                                    content: const Text(
+                                      '¿Seguro que deseas eliminar esta publicación?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('Cancelar'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        child: const Text('Eliminar'),
+                                      ),
+                                    ],
                                   ),
-                                  ElevatedButton(
-                                    onPressed: () => Navigator.pop(context, true),
-                                    child: const Text('Eliminar'),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (confirm == true) await _deletePost(post['auth_id']);
-                          },
+                                );
+                                if (confirm == true) await _deletePost(post['auth_id']);
+                              },
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                );
-              }).toList(),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );

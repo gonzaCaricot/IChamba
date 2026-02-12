@@ -290,61 +290,138 @@ class _MainScreenState extends State<MainScreen> {
         return const SettingsPage();
       case 1:
       default:
-        return RefreshIndicator(
-          onRefresh: _loadPosts,
-          child: _loadingPosts
-              ? const Center(child: CircularProgressIndicator())
-              : _posts.isEmpty
-              ? ListView(
-                  children: const [
-                    Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text('No hay publicaciones aún.'),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final isDesktop = width >= 900;
+
+            // Choose columns for desktop based on available width
+            int columns = (width / 420).floor();
+            if (columns < 1) columns = 1;
+            if (columns > 3) columns = 3;
+
+            Widget content;
+            if (_loadingPosts) {
+              // Keep a scrollable child for RefreshIndicator
+              content = ListView(
+                children: const [
+                  SizedBox(height: 24),
+                  Center(child: CircularProgressIndicator()),
+                  SizedBox(height: 24),
+                ],
+              );
+            } else if (_posts.isEmpty) {
+              content = ListView(
+                children: const [
+                  Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('No hay publicaciones aún.'),
+                  ),
+                ],
+              );
+            } else if (isDesktop) {
+              content = GridView.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 0.95,
+                ),
+                itemCount: _posts.length,
+                itemBuilder: (context, index) {
+                  final post = _posts[index];
+                  return Card(
+                    margin: EdgeInsets.zero,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
-                )
-              : ListView.builder(
-                  itemCount: _posts.length,
-                  itemBuilder: (context, index) {
-                    final post = _posts[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (post['image_url'] != null)
-                            Image.network(
-                              post['image_url'] as String,
-                              width: double.infinity,
-                              height: 220,
-                              fit: BoxFit.cover,
-                            ),
-                          Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(post['description'] ?? ''),
-                                const SizedBox(height: 8),
-                                Text(
-                                  post['created_at'] ?? '',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.black54,
-                                  ),
-                                ),
-                              ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (post['image_url'] != null)
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                              child: Image.network(
+                                post['image_url'] as String,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                        Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(post['description'] ?? ''),
+                              const SizedBox(height: 8),
+                              Text(
+                                post['created_at'] ?? '',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            } else {
+              content = ListView.builder(
+                itemCount: _posts.length,
+                itemBuilder: (context, index) {
+                  final post = _posts[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (post['image_url'] != null)
+                          Image.network(
+                            post['image_url'] as String,
+                            width: double.infinity,
+                            height: 220,
+                            fit: BoxFit.cover,
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(post['description'] ?? ''),
+                              const SizedBox(height: 8),
+                              Text(
+                                post['created_at'] ?? '',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: _loadPosts,
+              child: content,
+            );
+          },
         );
     }
   }

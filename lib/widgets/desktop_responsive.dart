@@ -13,11 +13,11 @@ class DesktopResponsive extends StatelessWidget {
   final double maxWidth;
 
   const DesktopResponsive({
-    Key? key,
+    super.key,
     required this.child,
     this.breakpoint = 800,
     this.maxWidth = 900,
-  }) : super(key: key);
+  });
 
   bool get _isDesktopLike => kIsWeb;
 
