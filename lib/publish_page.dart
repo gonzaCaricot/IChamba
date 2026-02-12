@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'services/supabase_service.dart';
 import 'services/selected_image_store.dart';
+import 'widgets/desktop_responsive.dart';
 import 'dart:async';
 
 class PublishPage extends StatefulWidget {
@@ -181,9 +182,10 @@ class _PublishPageState extends State<PublishPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Publicar')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+      body: DesktopResponsive(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ElevatedButton.icon(
@@ -258,13 +260,11 @@ class _PublishPageState extends State<PublishPage> {
                                 ),
                                 actions: [
                                   TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, false),
+                                    onPressed: () => Navigator.pop(context, false),
                                     child: const Text('Cancelar'),
                                   ),
                                   ElevatedButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, true),
+                                    onPressed: () => Navigator.pop(context, true),
                                     child: const Text('Eliminar'),
                                   ),
                                 ],
@@ -277,7 +277,7 @@ class _PublishPageState extends State<PublishPage> {
                     ),
                   ),
                 );
-              }),
+              }).toList(),
           ],
         ),
       ),
